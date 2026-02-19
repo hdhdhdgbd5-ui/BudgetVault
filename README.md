@@ -1,0 +1,2 @@
+# BudgetVault
+Simple budget tracker
