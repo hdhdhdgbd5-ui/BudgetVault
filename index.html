@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#10b981">
+    <title>BudgetVault - Simple Budget Tracker</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); min-height: 100vh; color: #1f2937; }
+        .container { max-width: 500px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 30px 0; }
+        .logo { font-size: 32px; font-weight: 800; color: #059669; }
+        .tagline { color: #6b7280; font-size: 14px; margin-top: 5px; }
+        .budget-card { background: linear-gradient(135deg, #059669 0%, #10b981 100%); color: white; border-radius: 20px; padding: 30px; margin: 20px 0; text-align: center; box-shadow: 0 10px 30px rgba(5, 150, 105, 0.3); }
+        .budget-amount { font-size: 48px; font-weight: 800; }
+        .budget-label { opacity: 0.9; margin-top: 5px; }
+        .income-expense { display: flex; gap: 15px; margin: 20px 0; }
+        .box { flex: 1; background: white; border-radius: 16px; padding: 20px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .box-icon { font-size: 24px; margin-bottom: 8px; }
+        .box-value { font-size: 24px; font-weight: 700; }
+        .box-label { font-size: 12px; color: #6b7280; }
+        .add-btn { background: #059669; color: white; border: none; border-radius: 16px; padding: 16px; font-size: 16px; font-weight: 600; cursor: pointer; width: 100%; margin: 10px 0; }
+        .transactions { background: white; border-radius: 20px; padding: 20px; margin-top: 20px; }
+        .section-title { font-weight: 700; margin-bottom: 15px; color: #374151; }
+        .transaction-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e5e7eb; }
+        .transaction-item:last-child { border-bottom: none; }
+        .tx-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; margin-right: 12px; }
+        .tx-income { background: #d1fae5; }
+        .tx-expense { background: #fee2e2; }
+        .tx-details { flex: 1; }
+        .tx-name { font-weight: 600; }
+        .tx-date { font-size: 12px; color: #6b7280; }
+        .tx-amount { font-weight: 700; font-size: 16px; }
+        .tx-amount.income { color: #059669; }
+        .tx-amount.expense { color: #ef4444; }
+        .chart-placeholder { text-align: center; padding: 40px; color: #9ca3af; background: #f9fafb; border-radius: 16px; margin: 15px 0; }
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: flex-end; justify-content: center; z-index: 1000; }
+        .modal.show { display: flex; }
+        .modal-content { background: white; border-radius: 24px 24px 0 0; padding: 30px; width: 100%; max-width: 500px; }
+        .input-group { margin-bottom: 20px; }
+        .input-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #374151; }
+        .input-group input, .input-group select { width: 100%; padding: 14px; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 16px; }
+        .toggle-group { display: flex; background: #f3f4f6; border-radius: 12px; padding: 4px; margin-bottom: 20px; }
+        .toggle-option { flex: 1; padding: 12px; text-align: center; border-radius: 10px; cursor: pointer; font-weight: 600; }
+        .toggle-option.active { background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .toggle-option.income-option.active { color: #059669; }
+        .toggle-option.expense-option.active { color: #ef4444; }
+        .category-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
+        .category-btn { background: #f3f4f6; border: none; border-radius: 12px; padding: 15px; text-align: center; cursor: pointer; font-size: 24px; }
+        .category-btn.selected { background: #059669; }
+        .export-btn { background: #f3f4f6; border: none; padding: 12px 20px; border-radius: 12px; margin-top: 15px; cursor: pointer; font-weight: 600; }
+        .empty-state { text-align: center; padding: 40px; color: #9ca3af; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">💰 BudgetVault</div>
+            <div class="tagline">Track your money, grow your wealth</div>
+        </header>
+
+        <div class="budget-card">
+            <div class="budget-label">Current Balance</div>
+            <div class="budget-amount" id="balance">$0</div>
+        </div>
+
+        <div class="income-expense">
+            <div class="box">
+                <div class="box-icon">📥</div>
+                <div class="box-value" style="color: #059669;" id="total-income">$0</div>
+                <div class="box-label">Income</div>
+            </div>
+            <div class="box">
+                <div class="box-icon">📤</div>
+                <div class="box-value" style="color: #ef4444;" id="total-expense">$0</div>
+                <div class="box-label">Expense</div>
+            </div>
+        </div>
+
+        <div class="chart-placeholder">
+            📊 Spending by category
+            <div style="margin-top: 10px; font-size: 14px;">(Chart appears after 5 transactions)</div>
+        </div>
+
+        <button class="add-btn" onclick="openModal()">➕ Add Transaction</button>
+
+        <div class="transactions">
+            <div class="section-title">Recent Transactions</div>
+            <div id="transaction-list">
+                <div class="empty-state">
+                    <div style="font-size: 48px;">📭</div>
+                    <div>No transactions yet</div>
+                    <div style="font-size: 14px;">Add your first income or expense above</div>
+                </div>
+            </div>
+            <button class="export-btn" onclick="exportData()">📥 Export CSV</button>
+            <button class="export-btn" onclick="clearAll()">🗑️ Clear All</button>
+        </div>
+    </div>
+
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <div style="font-size: 24px; font-weight: 700; margin-bottom: 20px;">Add Transaction</div>
+            
+            <div class="toggle-group">
+                <div class="toggle-option income-option active" onclick="setType('income')">📥 Income</div>
+                <div class="toggle-option expense-option" onclick="setType('expense')">📤 Expense</div>
+            </div>
+
+            <div class="input-group">
+                <label>Amount</label>
+                <input type="number" id="amount" placeholder="0.00" step="0.01">
+            </div>
+
+            <div class="input-group">
+                <label>Description</label>
+                <input type="text" id="description" placeholder="e.g. Grocery shopping">
+            </div>
+
+            <div class="input-group">
+                <label>Category</label>
+                <div class="category-grid" id="category-grid">
+                    <!-- Categories populated by JS -->
+                </div>
+            </div>
+
+            <button class="add-btn" onclick="saveTransaction()">💾 Save Transaction</button>
+            <button class="export-btn" onclick="closeModal()" style="width: 100%;">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        let transactions = JSON.parse(localStorage.getItem('budgetvault-transactions') || '[]');
+        let currentType = 'income';
+        let selectedCategory = null;
+
+        const categories = {
+            income: [
+                { icon: '💰', name: 'Salary' },
+                { icon: '💼', name: 'Business' },
+                { icon: '🎁', name: 'Gift' },
+                { icon: '📈', name: 'Investment' },
+                { icon: '💳', name: 'Refund' },
+                { icon: '🏆', name: 'Other' }
+            ],
+            expense: [
+                { icon: '🍔', name: 'Food' },
+                { icon: '🏠', name: 'Housing' },
+                { icon: '🚗', name: 'Transport' },
+                { icon: '🛍️', name: 'Shopping' },
+                { icon: '🎮', name: 'Entertainment' },
+                { icon: '📱', name: 'Bills' },
+                { icon: '💊', name: 'Health' },
+                { icon: '📚', name: 'Education' }
+            ]
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            renderCategories();
+            updateDisplay();
+        });
+
+        function openModal() {
+            document.getElementById('modal').classList.add('show');
+            renderCategories();
+            document.getElementById('amount').focus();
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.remove('show');
+            document.getElementById('amount').value = '';
+            document.getElementById('description').value = '';
+            selectedCategory = null;
+        }
+
+        function setType(type) {
+            currentType = type;
+            document.querySelectorAll('.toggle-option').forEach(el => el.classList.remove('active'));
+            document.querySelector(`.${type}-option`).classList.add('active');
+            renderCategories();
+        }
+
+        function renderCategories() {
+            const grid = document.getElementById('category-grid');
+            grid.innerHTML = categories[currentType].map((cat, i) => `
+                <button class="category-btn ${selectedCategory === i ? 'selected' : ''}" onclick="selectCategory(${i})">
+                    ${cat.icon}
+                </button>
+            `).join('');
+        }
+
+        function selectCategory(index) {
+            selectedCategory = index;
+            renderCategories();
+        }
+
+        function saveTransaction() {
+            const amount = parseFloat(document.getElementById('amount').value);
+            const description = document.getElementById('description').value.trim();
+
+            if (!amount || amount <= 0) return alert('Please enter an amount');
+            if (!description) return alert('Please enter a description');
+            if (selectedCategory === null) return alert('Please select a category');
+
+            const transaction = {
+                id: Date.now(),
+                type: currentType,
+                amount,
+                description,
+                category: categories[currentType][selectedCategory],
+                date: new Date().toISOString()
+            };
+
+            transactions.push(transaction);
+            localStorage.setItem('budgetvault-transactions', JSON.stringify(transactions));
+            
+            closeModal();
+            updateDisplay();
+        }
+
+        function updateDisplay() {
+            const income = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+            const expense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+            const balance = income - expense;
+
+            document.getElementById('balance').textContent = formatMoney(balance);
+            document.getElementById('total-income').textContent = formatMoney(income);
+            document.getElementById('total-expense').textContent = formatMoney(expense);
+
+            renderTransactions();
+        }
+
+        function renderTransactions() {
+            const list = document.getElementById('transaction-list');
+            
+            if (transactions.length === 0) {
+                list.innerHTML = `
+                    <div class="empty-state">
+                        <div style="font-size: 48px;">📭</div>
+                        <div>No transactions yet</div>
+                        <div style="font-size: 14px;">Add your first income or expense above</div>
+                    </div>
+                `;
+                return;
+            }
+
+            list.innerHTML = transactions
+                .sort((a, b) => new Date(b.date) - new Date(a.date))
+                .slice(0, 20)
+                .map(t => `
+                    <div class="transaction-item">
+                        <div style="display: flex; align-items: center;">
+                            <div class="tx-icon ${t.type === 'income' ? 'tx-income' : 'tx-expense'}">
+                                ${t.category.icon}
+                            </div>
+                            <div class="tx-details">
+                                <div class="tx-name">${t.description}</div>
+                                <div class="tx-date">${t.category.name} • ${new Date(t.date).toLocaleDateString()}</div>
+                            </div>
+                        </div>
+                        <div class="tx-amount ${t.type}">
+                            ${t.type === 'income' ? '+' : '-'}${formatMoney(t.amount)}
+                        </div>
+                    </div>
+                `).join('');
+        }
+
+        function formatMoney(amount) {
+            return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+        }
+
+        function deleteTransaction(id) {
+            transactions = transactions.filter(t => t.id !== id);
+            localStorage.setItem('budgetvault-transactions', JSON.stringify(transactions));
+            updateDisplay();
+        }
+
+        function exportData() {
+            const csv = [
+                ['Date', 'Type', 'Category', 'Description', 'Amount'],
+                ...transactions.map(t => [
+                    t.date, t.type, t.category.name, t.description, t.amount
+                ])
+            ].map(row => row.join(',')).join('\n');
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `budgetvault-export-${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+        }
+
+        function clearAll() {
+            if (!confirm('Clear ALL transactions? This cannot be undone.')) return;
+            transactions = [];
+            localStorage.setItem('budgetvault-transactions', JSON.stringify(transactions));
+            updateDisplay();
+        }
+    </script>
+    
+    <div style="text-align: center; margin: 30px 0;">
+        <a href="https://ko-fi.com/tezfiles" target="_blank" style="background: #29abe0; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">☕ Support on Ko-fi</a>
+    </div>
+</body>
+</html>

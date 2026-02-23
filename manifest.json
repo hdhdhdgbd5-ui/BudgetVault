@@ -1,0 +1,14 @@
+{
+  "name": "BudgetVault - Budget Tracker",
+  "short_name": "BudgetVault",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#ecfdf5",
+  "theme_color": "#059669",
+  "icons": [
+    {
+      "src": "icon-192x192.png",
+      "sizes": "192x192"
+    }
+  ]
+}
